@@ -13,12 +13,18 @@ public class Main {
 	 * 7 Marks
 	 */
 	public static void writeProductItemToFile(ProductItem item){
-		try(ObjectOutputStream writer = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(Main.path, true)))){
+		boolean append = new File(path).exists(); // Check if file exists
+
+		try (FileOutputStream fos = new FileOutputStream(path, true);
+			 ObjectOutputStream writer = append ? new AppendingObjectOutputStream(fos) : new ObjectOutputStream(fos)) {
+
 			writer.writeObject(item);
-			writer.reset();
-        } catch (IOException e) {
-            System.out.println("Message - write: " + e.getMessage());
-        }
+			writer.flush();
+			System.out.println("Item added successfully");
+
+		} catch (IOException e) {
+			System.out.println("Message - write: " + e.getMessage());
+		}
     }
 	
 	/*
@@ -31,12 +37,14 @@ public class Main {
 		try(ObjectInputStream reader = new ObjectInputStream(new BufferedInputStream(new FileInputStream(Main.path)))){
 			Object newOBject = reader.readObject();
 			linkedList.insertFirst((ProductItem) newOBject);
-			while(reader.available() > 0){
-				newOBject = reader.readObject();
-				linkedList.insertFirst((ProductItem) newOBject);
-				System.out.println("Size: " + size++);
+			while (true) { // Read until EOFException
+				try {
+					ProductItem item = (ProductItem) reader.readObject();
+					linkedList.insertFirst(item);
+				} catch (EOFException e) {
+					break; // End of file reached
+				}
 			}
-			System.out.println("end");
 		} catch (IOException e){
 			System.out.println("Message - read: " + e.getMessage());
 		} catch (ClassNotFoundException e) {
